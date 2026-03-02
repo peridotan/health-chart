@@ -1,93 +1,146 @@
+import { useEffect, useState } from "react";
 import {
+  ResponsiveContainer,
   ComposedChart,
   Line,
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
   CartesianGrid,
-  ResponsiveContainer,
+  Tooltip,
   Legend,
 } from "recharts";
 
-const data = [
-  { date: "02/18", weight: 63.5, sleep: 6.8 },
-  { date: "02/19", weight: 63.6, sleep: 6.33 },
-  { date: "02/20", weight: 63.4, sleep: 7.9 },
-  { date: "02/21", weight: 63.4, sleep: 6.18 },
-  { date: "02/22", weight: 63.5, sleep: 6.05 },
-  { date: "02/23", weight: 63.3, sleep: 6.27 },
-  { date: "02/24", weight: 63.3, sleep: 6.62 },
-  { date: "02/25", weight: 62.8, sleep: 7.67 },
-  { date: "02/26", weight: 62.7, sleep: 7.78 },
-  { date: "02/27", weight: 62.8, sleep: 7.82 },
-  { date: "02/28", weight: 63.0, sleep: 6.15 },
-  { date: "03/01", weight: 62.9, sleep: 8.63 },
-  { date: "03/02", weight: 62.6, sleep: 7.22 },
-];
+/* =========================
+   CSV パース処理
+========================= */
+
+function parseTimeToHours(hms) {
+  // "7:13:00" → 7.216...
+  const [h, m, s] = hms.split(":").map(Number);
+  return (h || 0) + (m || 0) / 60 + (s || 0) / 3600;
+}
+
+function parseCsv(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(",").map((h) => h.trim());
+
+  const idxDate = headers.indexOf("date");
+  const idxWeight = headers.indexOf("weight_kg");
+  const idxSleep = headers.indexOf("sleep_time");
+
+  return lines.slice(1).map((line) => {
+    const cols = line.split(",").map((c) => c.trim());
+
+    const date = cols[idxDate];
+    const weight_kg = Number(cols[idxWeight]);
+    const sleep_time = cols[idxSleep];
+    const sleep_hours = parseTimeToHours(sleep_time);
+
+    return {
+      date,
+      weight_kg,
+      sleep_hours,
+    };
+  });
+}
+
+/* =========================
+   メインコンポーネント
+========================= */
 
 export default function App() {
+  const [data, setData] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    // GitHub Pages 対応（base考慮）
+    fetch(`${import.meta.env.BASE_URL}data.csv?ts=${Date.now()}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("CSVの取得に失敗しました");
+        return res.text();
+      })
+      .then((text) => {
+        const parsed = parseCsv(text);
+        setData(parsed);
+      })
+      .catch((err) => {
+        setError(err.message);
+      });
+  }, []);
+
+  if (error) {
+    return (
+      <div style={{ padding: 20, color: "red" }}>
+        エラー: {error}
+      </div>
+    );
+  }
+
+  if (!data.length) {
+    return (
+      <div style={{ padding: 20 }}>
+        Loading...
+      </div>
+    );
+  }
+
   return (
-    <div style={{ width: "100%" }}>
-      <div style={{ padding: 40, maxWidth: 980, margin: "0 auto" }}>
-        <h2>健康管理</h2>
-        <p>体重（折れ線）＋睡眠（棒）</p>
+    <div style={{ padding: 24, fontFamily: "sans-serif" }}>
+      <h1>健康管理</h1>
+      <p>体重（折れ線） + 睡眠（棒）</p>
 
-        <div style={{ width: "100%", height: 380 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <Tooltip />
-              <Legend />
+      <div style={{ width: "100%", height: 450 }}>
+        <ResponsiveContainer>
+          <ComposedChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
 
-              {/* 左軸：体重 */}
-              <YAxis
-                yAxisId="left"
-                domain={[62, 64]}
-                tick={{ fontSize: 12 }}
-                label={{
-                  value: "体重 (kg)",
-                  angle: -90,
-                  position: "insideLeft",
-                }}
-              />
+            <XAxis dataKey="date" />
 
-              {/* 右軸：睡眠 */}
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                domain={[5, 9]}
-                tick={{ fontSize: 12 }}
-                label={{
-                  value: "睡眠 (h)",
-                  angle: 90,
-                  position: "insideRight",
-                }}
-              />
+            {/* 体重（左軸） */}
+            <YAxis
+              yAxisId="left"
+              domain={["dataMin - 0.5", "dataMax + 0.5"]}
+              label={{
+                value: "体重 (kg)",
+                angle: -90,
+                position: "insideLeft",
+              }}
+            />
 
-              {/* 棒：睡眠（右軸） */}
-              <Bar
-                yAxisId="right"
-                dataKey="sleep"
-                name="睡眠(時間)"
-                fill="#4dabf7"
-                opacity={0.85}
-              />
+            {/* 睡眠（右軸） */}
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              domain={[5, 9]}
+              label={{
+                value: "睡眠 (h)",
+                angle: 90,
+                position: "insideRight",
+              }}
+            />
 
-              {/* 線：体重（左軸） */}
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="weight"
-                name="体重(kg)"
-                stroke="#ff4d6d"
-                strokeWidth={2}
-                dot
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+            <Tooltip />
+            <Legend />
+
+            <Bar
+              yAxisId="right"
+              dataKey="sleep_hours"
+              name="睡眠(時間)"
+              fill="#4dabf7"
+            />
+
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="weight_kg"
+              name="体重(kg)"
+              stroke="#ff2d55"
+              strokeWidth={2}
+              dot
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
