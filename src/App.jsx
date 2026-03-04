@@ -8,87 +8,110 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
+  Legend
 } from "recharts";
 
-/* =========================
-   CSV パース処理
-========================= */
+/* =====================
+   CSV処理
+===================== */
 
 function parseTimeToHours(hms) {
-  // "7:13:00" → 7.216...
-  const [h, m, s] = hms.split(":").map(Number);
-  return (h || 0) + (m || 0) / 60 + (s || 0) / 3600;
+  const parts = hms.split(":").map(Number);
+  const h = parts[0] || 0;
+  const m = parts[1] || 0;
+  const s = parts[2] || 0;
+  return h + m / 60 + s / 3600;
 }
 
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map((h) => h.trim());
+  const headers = lines[0].split(",");
 
   const idxDate = headers.indexOf("date");
   const idxWeight = headers.indexOf("weight_kg");
   const idxSleep = headers.indexOf("sleep_time");
 
   return lines.slice(1).map((line) => {
-    const cols = line.split(",").map((c) => c.trim());
+    const cols = line.split(",");
 
     const date = cols[idxDate];
-    const weight_kg = Number(cols[idxWeight]);
-    const sleep_time = cols[idxSleep];
-    const sleep_hours = parseTimeToHours(sleep_time);
+    const weight = Number(cols[idxWeight]);
+    const sleep = parseTimeToHours(cols[idxSleep]);
 
     return {
-      date,
-      weight_kg,
-      sleep_hours,
+      date: date,
+      weight_kg: weight,
+      sleep_hours: sleep
     };
   });
 }
 
-/* =========================
-   メインコンポーネント
-========================= */
+/* =====================
+   アプリ
+===================== */
 
 export default function App() {
   const [data, setData] = useState([]);
+  const [source, setSource] = useState("demo");
   const [error, setError] = useState("");
 
+  /* 初期表示：data.csv */
   useEffect(() => {
-    // GitHub Pages 対応（base考慮）
-    fetch(`${import.meta.env.BASE_URL}data.csv?ts=${Date.now()}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("CSVの取得に失敗しました");
-        return res.text();
-      })
+    fetch(`${import.meta.env.BASE_URL}data.csv`)
+      .then((res) => res.text())
       .then((text) => {
-        const parsed = parseCsv(text);
-        setData(parsed);
+        setData(parseCsv(text));
       })
-      .catch((err) => {
-        setError(err.message);
+      .catch(() => {
+        setError("data.csv を読み込めませんでした");
       });
   }, []);
 
-  if (error) {
-    return (
-      <div style={{ padding: 20, color: "red" }}>
-        エラー: {error}
-      </div>
-    );
-  }
+  /* CSVアップロード */
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  if (!data.length) {
-    return (
-      <div style={{ padding: 20 }}>
-        Loading...
-      </div>
-    );
+    if (file.size > 1024 * 1024) {
+      alert("CSVは1MB以下にしてください");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      try {
+        const parsed = parseCsv(event.target.result);
+        setData(parsed);
+        setSource("upload");
+      } catch (err) {
+        alert("CSV形式が正しくありません");
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  if (error) {
+    return <div style={{ padding: 20 }}>{error}</div>;
   }
 
   return (
     <div style={{ padding: 24, fontFamily: "sans-serif" }}>
-      <h1>健康管理</h1>
-      <p>体重（折れ線） + 睡眠（棒）</p>
+      <h1>Health Chart</h1>
+
+      <p>
+        CSVフォーマット:
+        <br />
+        <code>date,weight_kg,sleep_time</code>
+      </p>
+
+      <input type="file" accept=".csv" onChange={handleFile} />
+
+      <p>
+        データソース：
+        {source === "demo" ? "デモ(data.csv)" : "アップロードCSV"}
+      </p>
 
       <div style={{ width: "100%", height: 450 }}>
         <ResponsiveContainer>
@@ -97,26 +120,22 @@ export default function App() {
 
             <XAxis dataKey="date" />
 
-            {/* 体重（左軸） */}
             <YAxis
               yAxisId="left"
-              domain={["dataMin - 0.5", "dataMax + 0.5"]}
               label={{
                 value: "体重 (kg)",
                 angle: -90,
-                position: "insideLeft",
+                position: "insideLeft"
               }}
             />
 
-            {/* 睡眠（右軸） */}
             <YAxis
               yAxisId="right"
               orientation="right"
-              domain={[5, 9]}
               label={{
                 value: "睡眠 (h)",
                 angle: 90,
-                position: "insideRight",
+                position: "insideRight"
               }}
             />
 
@@ -126,7 +145,7 @@ export default function App() {
             <Bar
               yAxisId="right"
               dataKey="sleep_hours"
-              name="睡眠(時間)"
+              name="睡眠時間"
               fill="#4dabf7"
             />
 
@@ -134,7 +153,7 @@ export default function App() {
               yAxisId="left"
               type="monotone"
               dataKey="weight_kg"
-              name="体重(kg)"
+              name="体重"
               stroke="#ff2d55"
               strokeWidth={2}
               dot
