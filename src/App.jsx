@@ -84,19 +84,12 @@ function parseCSV(text) {
   }
 
   // sort by date string (works best if you use YYYY-MM-DD; still OK for MM/DD in your current data)
-//  rows.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  // rows.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
   return rows;
 }
 
 function hoursToHHMM(hours) {
   const totalMinutes = Math.round(Number(hours) * 60);
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  return `${h}:${String(m).padStart(2, "0")}`;
-}
-
-function minutesToHHMM(min) {
-  const totalMinutes = Math.round(Number(min));
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
   return `${h}:${String(m).padStart(2, "0")}`;
@@ -217,61 +210,56 @@ export default function App() {
     }
   };
 
+  // UI styles (inline)
+  const pageStyle = {
+    padding: 24,
+    maxWidth: 980,
+    margin: "0 auto",
+    // sticky panel 分の下余白を確保（スマホで下に被らないように）
+    paddingBottom: 140,
+  };
+
+  const stickyWrapStyle = {
+    position: "sticky",
+    bottom: 16,
+    zIndex: 20,
+    marginTop: 18,
+  };
+
+  const stickyPanelStyle = {
+    border: "1px solid #ddd",
+    borderRadius: 14,
+    background: "rgba(255,255,255,0.92)",
+    backdropFilter: "blur(10px)",
+    boxShadow: "0 10px 26px rgba(0,0,0,0.12)",
+    padding: 14,
+  };
+
+  const uploadRowStyle = {
+    marginTop: 10,
+    display: "flex",
+    gap: 12,
+    alignItems: "center",
+    flexWrap: "wrap",
+  };
+
+  const uploadButtonStyle = {
+    display: "inline-flex",
+    gap: 10,
+    alignItems: "center",
+    padding: "10px 12px",
+    border: "1px solid #ddd",
+    borderRadius: 10,
+    background: "#fff",
+    cursor: "pointer",
+    userSelect: "none",
+  };
+
   return (
-    <div style={{ padding: 24, maxWidth: 980, margin: "0 auto" }}>
+    <div style={pageStyle}>
       <h1 style={{ margin: 0, fontSize: 44, letterSpacing: 0.2 }}>Health Chart</h1>
 
-      <div style={{ marginTop: 12, lineHeight: 1.7 }}>
-        <div style={{ fontWeight: 700 }}>CSVフォーマット:</div>
-        <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
-          date,weight_kg,sleep_time
-        </div>
-      </div>
-
-      <div style={{ marginTop: 12, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <label
-          style={{
-            display: "inline-flex",
-            gap: 10,
-            alignItems: "center",
-            padding: "10px 12px",
-            border: "1px solid #ddd",
-            borderRadius: 10,
-            background: "#fff",
-            cursor: "pointer",
-          }}
-        >
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            style={{ display: "none" }}
-            onChange={(e) => onUpload(e.target.files?.[0])}
-          />
-          <span style={{ fontWeight: 700 }}>CSVをアップロード</span>
-          <span style={{ color: "#666" }}>（選ぶだけで反映）</span>
-        </label>
-
-        <div style={{ color: "#333" }}>
-          データソース：<b>{sourceLabel}</b>
-        </div>
-      </div>
-
-      {error && (
-        <div
-          style={{
-            marginTop: 12,
-            padding: 12,
-            border: "1px solid #ffb4b4",
-            background: "#fff2f2",
-            borderRadius: 10,
-            color: "#b00020",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {error}
-        </div>
-      )}
-
+      {/* ✅ 先にグラフ */}
       <div style={{ marginTop: 18 }}>
         <h2 style={{ margin: "18px 0 8px", fontSize: 28 }}>健康管理</h2>
         <div style={{ color: "#666", marginBottom: 10 }}>体重（折れ線）＋睡眠（棒）</div>
@@ -286,7 +274,7 @@ export default function App() {
                 tickMargin={10}
                 interval="preserveStartEnd"
                 minTickGap={40}
-/>
+              />
 
               {/* Left axis: weight (narrow range) */}
               <YAxis
@@ -336,6 +324,54 @@ export default function App() {
 
         <div style={{ marginTop: 10, color: "#666", fontSize: 13 }}>
           ※ 睡眠は内部的に「時間(小数)」で描画し、表示だけ「HH:MM」に変換しています。
+        </div>
+      </div>
+
+      {/* ✅ 下に sticky なCSV Uploadパネル */}
+      <div style={stickyWrapStyle}>
+        <div style={stickyPanelStyle}>
+          <div style={{ display: "flex", gap: 14, alignItems: "baseline", flexWrap: "wrap" }}>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>CSVアップロード</div>
+            <div style={{ color: "#666", fontSize: 13 }}>
+              フォーマット：{" "}
+              <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
+                date,weight_kg,sleep_time
+              </span>
+            </div>
+          </div>
+
+          <div style={uploadRowStyle}>
+            <label style={uploadButtonStyle}>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: "none" }}
+                onChange={(e) => onUpload(e.target.files?.[0])}
+              />
+              <span style={{ fontWeight: 800 }}>CSVを選ぶ</span>
+              <span style={{ color: "#666" }}>（選ぶだけで反映）</span>
+            </label>
+
+            <div style={{ color: "#333" }}>
+              データソース：<b>{sourceLabel}</b>
+            </div>
+          </div>
+
+          {error && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: 12,
+                border: "1px solid #ffb4b4",
+                background: "#fff2f2",
+                borderRadius: 10,
+                color: "#b00020",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {error}
+            </div>
+          )}
         </div>
       </div>
     </div>
