@@ -261,7 +261,6 @@ export default function App() {
 
       {/* ✅ 先にグラフ */}
       <div style={{ marginTop: 18 }}>
-        <h2 style={{ margin: "18px 0 8px", fontSize: 28 }}>健康管理</h2>
         <div style={{ color: "#666", marginBottom: 10 }}>体重（折れ線）＋睡眠（棒）</div>
 
         <div style={{ width: "100%", height: 520, background: "#fff", borderRadius: 14 }}>
