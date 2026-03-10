@@ -261,8 +261,6 @@ export default function App() {
 
       {/* ✅ 先にグラフ */}
       <div style={{ marginTop: 18 }}>
-        <div style={{ color: "#666", marginBottom: 10 }}>体重（折れ線）＋睡眠（棒）</div>
-
         <div style={{ width: "100%", height: 520, background: "#fff", borderRadius: 14 }}>
           <ResponsiveContainer>
             <ComposedChart data={data} margin={{ top: 10, right: 36, left: 20, bottom: 20 }}>
@@ -281,7 +279,7 @@ export default function App() {
                 domain={[ranges.weight.min, ranges.weight.max]}
                 tickCount={6}
                 tickMargin={8}
-                label={{ value: "体重 (kg)", angle: -90, position: "insideLeft" }}
+                label={{ value: "体重 (kg)※折れ線", angle: -90, position: "insideLeft" }}
               />
 
               {/* Right axis: sleep */}
@@ -291,7 +289,7 @@ export default function App() {
                 domain={[ranges.sleep.min, ranges.sleep.max]}
                 tickMargin={8}
                 tickFormatter={(v) => hoursToHHMM(v)}
-                label={{ value: "睡眠 (h)", angle: 90, position: "insideRight" }}
+                label={{ value: "睡眠 (h)※棒", angle: 90, position: "insideRight" }}
               />
 
               <Tooltip content={<CustomTooltip />} />
