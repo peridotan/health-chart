@@ -257,7 +257,6 @@ export default function App() {
 
   return (
     <div style={pageStyle}>
-      <h1 style={{ margin: 0, fontSize: 44, letterSpacing: 0.2 }}>Health Chart</h1>
 
       {/* ✅ 先にグラフ */}
       <div style={{ marginTop: 18 }}>
