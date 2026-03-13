@@ -10,12 +10,10 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ReferenceLine,
   ReferenceArea,
 } from "recharts";
 
 /** ===== settings ===== */
-const GOAL_WEIGHT = 60.0;
 const MOVING_AVG_DAYS = 7;
 const PLATEAU_DAYS = 14;
 const PLATEAU_RANGE_KG = 0.4;
@@ -267,7 +265,7 @@ export default function App() {
     }
 
     const weights = enhancedData
-      .flatMap((d) => [Number(d.weight_kg), Number(d.weight_avg_7), GOAL_WEIGHT])
+      .flatMap((d) => [Number(d.weight_kg), Number(d.weight_avg_7)])
       .filter(Number.isFinite);
 
     const sleeps = enhancedData
@@ -468,23 +466,6 @@ export default function App() {
                 verticalAlign="bottom"
                 height={isMobile ? 60 : 44}
                 wrapperStyle={{ fontSize: isMobile ? 11 : 12 }}
-              />
-
-              <ReferenceLine
-                yAxisId="left"
-                y={GOAL_WEIGHT}
-                stroke="#9e9e9e"
-                strokeDasharray="6 4"
-                label={
-                  isMobile
-                    ? false
-                    : {
-                        value: `目標 ${GOAL_WEIGHT.toFixed(1)}kg`,
-                        position: "insideTopLeft",
-                        fill: "#666",
-                        fontSize: 12,
-                      }
-                }
               />
 
               <Bar
