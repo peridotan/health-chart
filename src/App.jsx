@@ -14,7 +14,6 @@ import {
 
 /** ===== utilities ===== */
 function parseCSV(text) {
-  // very small CSV parser (handles quoted fields minimally)
   const lines = text
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
@@ -58,7 +57,6 @@ function parseCSV(text) {
   if (idx.date < 0 || idx.weight_kg < 0 || idx.sleep_time < 0) return [];
 
   const toMinutes = (sleepStr) => {
-    // accepts "HH:MM" or "HH:MM:SS"
     const parts = String(sleepStr).split(":").map((n) => parseInt(n, 10));
     if (parts.length < 2 || parts.some((n) => Number.isNaN(n))) return null;
     const [h, m, s = 0] = parts;
@@ -82,7 +80,6 @@ function parseCSV(text) {
     });
   }
 
-  // 並び順はCSVの順を尊重
   return rows;
 }
 
@@ -102,7 +99,6 @@ function formatDateLabel(value) {
 
   const s = String(value).trim();
 
-  // 2026-03-13 -> 03/13
   const m1 = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (m1) {
     const mm = String(m1[2]).padStart(2, "0");
@@ -110,7 +106,6 @@ function formatDateLabel(value) {
     return `${mm}/${dd}`;
   }
 
-  // 26/03/13 -> 03/13
   const m2 = s.match(/^(\d{2})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (m2) {
     const mm = String(m2[2]).padStart(2, "0");
@@ -158,7 +153,6 @@ export default function App() {
   const [sourceLabel, setSourceLabel] = useState("デモ(data.csv)");
   const [error, setError] = useState("");
 
-  // load demo csv from /public/data.csv
   useEffect(() => {
     (async () => {
       try {
@@ -192,12 +186,10 @@ export default function App() {
     let wMin = Math.min(...weights);
     let wMax = Math.max(...weights);
 
-    // 少し余白を持たせて 0.1kg 刻みに寄せる
     const pad = Math.max(0.3, (wMax - wMin) * 0.25);
     wMin = niceNumber(wMin - pad, 0.1);
     wMax = niceNumber(wMax + pad, 0.1);
 
-    // 変化幅が小さいときも見やすく
     if (wMax - wMin < 1.0) {
       const mid = (wMax + wMin) / 2;
       wMin = niceNumber(mid - 0.5, 0.1);
@@ -276,21 +268,50 @@ export default function App() {
     userSelect: "none",
   };
 
+  const chartOuterStyle = {
+    position: "relative",
+    width: "100%",
+    height: 520,
+    background: "#fff",
+    borderRadius: 14,
+    overflow: "hidden",
+  };
+
+  const leftAxisTitleStyle = {
+    position: "absolute",
+    left: 12,
+    top: "50%",
+    transform: "translateY(-50%) rotate(-90deg)",
+    transformOrigin: "center",
+    color: "#666",
+    fontSize: 14,
+    pointerEvents: "none",
+    whiteSpace: "nowrap",
+  };
+
+  const rightAxisTitleStyle = {
+    position: "absolute",
+    right: 12,
+    top: "50%",
+    transform: "translateY(-50%) rotate(90deg)",
+    transformOrigin: "center",
+    color: "#666",
+    fontSize: 14,
+    pointerEvents: "none",
+    whiteSpace: "nowrap",
+  };
+
   return (
     <div style={pageStyle}>
       <div style={{ marginTop: 18 }}>
-        <div
-          style={{
-            width: "100%",
-            height: 520,
-            background: "#fff",
-            borderRadius: 14,
-          }}
-        >
+        <div style={chartOuterStyle}>
+          <div style={leftAxisTitleStyle}>体重 (kg) ※折れ線</div>
+          <div style={rightAxisTitleStyle}>睡眠 (h) ※棒</div>
+
           <ResponsiveContainer>
             <ComposedChart
               data={data}
-              margin={{ top: 10, right: 80, left: 80, bottom: 20 }}
+              margin={{ top: 10, right: 70, left: 70, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
 
@@ -304,34 +325,20 @@ export default function App() {
 
               <YAxis
                 yAxisId="left"
-                width={64}
+                width={46}
                 domain={[ranges.weight.min, ranges.weight.max]}
                 tickCount={6}
                 tickMargin={8}
                 tickFormatter={(v) => Number(v).toFixed(1)}
-                label={{
-                  value: "体重 (kg) ※折れ線",
-                  angle: -90,
-                  position: "outsideLeft",
-                  offset: 24,
-                  style: { textAnchor: "middle" },
-                }}
               />
 
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                width={56}
+                width={46}
                 domain={[ranges.sleep.min, ranges.sleep.max]}
                 tickMargin={8}
                 tickFormatter={(v) => hoursToHHMM(v)}
-                label={{
-                  value: "睡眠 (h) ※棒",
-                  angle: 90,
-                  position: "outsideRight",
-                  offset: 24,
-                  style: { textAnchor: "middle" },
-                }}
               />
 
               <Tooltip content={<CustomTooltip />} />
