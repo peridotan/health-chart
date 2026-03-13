@@ -543,18 +543,21 @@ export default function App() {
                 dot={{ r: 4, stroke: "#ff2d55", fill: "#fff" }}
                 activeDot={{ r: 6 }}
                 isAnimationActive={false}
+                legendType="plainline"
               />
+
 
               <Line
                 yAxisId="left"
                 type="monotone"
                 dataKey="weight_avg_7"
                 name="7日平均(kg)"
-                stroke="#c2185b"
+                stroke="#2e7d32"
                 strokeWidth={3}
                 dot={false}
-                activeDot={{ r: 5 }}
+                activeDot={false}
                 isAnimationActive={false}
+                legendType="plainline"
               />
             </ComposedChart>
           </ResponsiveContainer>
