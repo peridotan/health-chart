@@ -194,7 +194,7 @@ function CustomTooltip({ active, payload, label }) {
       )}
 
       {Number.isFinite(weightAvg) && (
-        <div style={{ color: "#c2185b", marginBottom: 4 }}>
+        <div style={{ color: "#2e7d32", marginBottom: 4 }}>
           7日平均：{Number(weightAvg).toFixed(1)} kg
         </div>
       )}
@@ -291,15 +291,8 @@ export default function App() {
     if (!enhancedData.length) return null;
 
     const latest = enhancedData[enhancedData.length - 1];
-    const minWeight = Math.min(...enhancedData.map((d) => d.weight_kg));
-    const latestAvg = latest.weight_avg_7;
-    const diffToGoal = latest.weight_kg - GOAL_WEIGHT;
 
     return {
-      latestWeight: latest.weight_kg,
-      latestAvg,
-      minWeight,
-      diffToGoal,
       isPlateauNow:
         plateauRanges.length > 0 &&
         plateauRanges.some((r) => r.x2 === latest.date),
@@ -400,64 +393,8 @@ export default function App() {
     whiteSpace: "nowrap",
   };
 
-  const summaryWrapStyle = {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-    gap: 12,
-    marginBottom: 14,
-  };
-
-  const summaryCardStyle = {
-    background: "#fff",
-    border: "1px solid #e7e7e7",
-    borderRadius: 12,
-    padding: "12px 14px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-  };
-
-  const summaryLabelStyle = {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 6,
-  };
-
-  const summaryValueStyle = {
-    fontSize: 22,
-    fontWeight: 800,
-    color: "#222",
-  };
-
   return (
     <div style={pageStyle}>
-      {stats && (
-        <div style={summaryWrapStyle}>
-          <div style={summaryCardStyle}>
-            <div style={summaryLabelStyle}>最新体重</div>
-            <div style={summaryValueStyle}>{stats.latestWeight.toFixed(1)} kg</div>
-          </div>
-
-          <div style={summaryCardStyle}>
-            <div style={summaryLabelStyle}>7日平均</div>
-            <div style={summaryValueStyle}>
-              {Number.isFinite(stats.latestAvg) ? stats.latestAvg.toFixed(1) : "-"} kg
-            </div>
-          </div>
-
-          <div style={summaryCardStyle}>
-            <div style={summaryLabelStyle}>最小体重</div>
-            <div style={summaryValueStyle}>{stats.minWeight.toFixed(1)} kg</div>
-          </div>
-
-          <div style={summaryCardStyle}>
-            <div style={summaryLabelStyle}>目標まで</div>
-            <div style={summaryValueStyle}>
-              {stats.diffToGoal > 0 ? "+" : ""}
-              {stats.diffToGoal.toFixed(1)} kg
-            </div>
-          </div>
-        </div>
-      )}
-
       <div style={{ marginTop: 18 }}>
         <div style={chartOuterStyle}>
           <div style={leftAxisTitleStyle}>体重 (kg) ※折れ線</div>
@@ -466,7 +403,7 @@ export default function App() {
           <ResponsiveContainer>
             <ComposedChart
               data={enhancedData}
-              margin={{ top: 10, right: 78, left: 78, bottom: 20 }}
+              margin={{ top: 20, right: 78, left: 78, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
 
@@ -536,20 +473,6 @@ export default function App() {
               <Line
                 yAxisId="left"
                 type="monotone"
-                dataKey="weight_kg"
-                name="体重(kg)"
-                stroke="#ff2d55"
-                strokeWidth={2}
-                dot={{ r: 4, stroke: "#ff2d55", fill: "#fff" }}
-                activeDot={{ r: 6 }}
-                isAnimationActive={false}
-
-              />
-
-
-              <Line
-                yAxisId="left"
-                type="monotone"
                 dataKey="weight_avg_7"
                 name="7日平均(kg)"
                 stroke="#2e7d32"
@@ -559,13 +482,28 @@ export default function App() {
                 isAnimationActive={false}
                 legendType="plainline"
               />
+
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="weight_kg"
+                name="体重(kg)"
+                stroke="#ff2d55"
+                strokeWidth={2}
+                dot={{ r: 4, stroke: "#ff2d55", fill: "#fff" }}
+                activeDot={{ r: 6 }}
+                isAnimationActive={false}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
         <div style={{ marginTop: 10, color: "#666", fontSize: 13, lineHeight: 1.6 }}>
           <div>※ 睡眠は内部的に「時間(小数)」で描画し、表示だけ「HH:MM」に変換しています。</div>
-          <div>※ 薄い黄色の帯は「{PLATEAU_DAYS}日間で体重変動が {PLATEAU_RANGE_KG.toFixed(1)}kg以内」の停滞気味ゾーンです。</div>
+          <div>
+            ※ 薄い黄色の帯は「{PLATEAU_DAYS}日間で体重変動が{" "}
+            {PLATEAU_RANGE_KG.toFixed(1)}kg以内」の停滞気味ゾーンです。
+          </div>
         </div>
       </div>
 
