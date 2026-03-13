@@ -279,7 +279,7 @@ export default function App() {
 
   const leftAxisTitleStyle = {
     position: "absolute",
-    left: 12,
+    left: -6,
     top: "50%",
     transform: "translateY(-50%) rotate(-90deg)",
     transformOrigin: "center",
@@ -291,7 +291,7 @@ export default function App() {
 
   const rightAxisTitleStyle = {
     position: "absolute",
-    right: 12,
+    right: -6,
     top: "50%",
     transform: "translateY(-50%) rotate(90deg)",
     transformOrigin: "center",
