@@ -10,7 +10,15 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceLine,
+  ReferenceArea,
 } from "recharts";
+
+/** ===== settings ===== */
+const GOAL_WEIGHT = 60.0; // 目標体重
+const MOVING_AVG_DAYS = 7; // 移動平均日数
+const PLATEAU_DAYS = 14; // 停滞判定期間
+const PLATEAU_RANGE_KG = 0.4; // この範囲内なら停滞気味とみなす
 
 /** ===== utilities ===== */
 function parseCSV(text) {
@@ -116,11 +124,54 @@ function formatDateLabel(value) {
   return s;
 }
 
+function calcMovingAverage(values, windowSize) {
+  return values.map((_, idx) => {
+    const start = Math.max(0, idx - windowSize + 1);
+    const slice = values.slice(start, idx + 1).filter(Number.isFinite);
+    if (!slice.length) return null;
+    return slice.reduce((sum, v) => sum + v, 0) / slice.length;
+  });
+}
+
+function calcPlateauRanges(data, days, rangeKg) {
+  if (!Array.isArray(data) || data.length < days) return [];
+
+  const ranges = [];
+  let current = null;
+
+  for (let end = days - 1; end < data.length; end++) {
+    const start = end - days + 1;
+    const window = data.slice(start, end + 1).map((d) => d.weight_kg);
+    const min = Math.min(...window);
+    const max = Math.max(...window);
+    const isPlateau = max - min <= rangeKg;
+
+    if (isPlateau) {
+      if (!current) {
+        current = { start, end };
+      } else {
+        current.end = end;
+      }
+    } else if (current) {
+      ranges.push(current);
+      current = null;
+    }
+  }
+
+  if (current) ranges.push(current);
+
+  return ranges.map((r) => ({
+    x1: data[r.start]?.date,
+    x2: data[r.end]?.date,
+  }));
+}
+
 /** ===== UI components ===== */
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
 
   const weight = payload.find((p) => p.dataKey === "weight_kg")?.value;
+  const weightAvg = payload.find((p) => p.dataKey === "weight_avg_7")?.value;
   const sleep = payload.find((p) => p.dataKey === "sleep_hours")?.value;
 
   return (
@@ -131,15 +182,23 @@ function CustomTooltip({ active, payload, label }) {
         borderRadius: 8,
         padding: "10px 12px",
         boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
-        minWidth: 180,
+        minWidth: 190,
       }}
     >
       <div style={{ fontWeight: 700, marginBottom: 6 }}>{label}</div>
+
       {Number.isFinite(weight) && (
         <div style={{ color: "#ff2d55", marginBottom: 4 }}>
           体重：{Number(weight).toFixed(1)} kg
         </div>
       )}
+
+      {Number.isFinite(weightAvg) && (
+        <div style={{ color: "#c2185b", marginBottom: 4 }}>
+          7日平均：{Number(weightAvg).toFixed(1)} kg
+        </div>
+      )}
+
       {Number.isFinite(sleep) && (
         <div style={{ color: "#2f7cf6" }}>睡眠：{hoursToHHMM(sleep)}</div>
       )}
@@ -172,16 +231,37 @@ export default function App() {
     })();
   }, []);
 
+  const enhancedData = useMemo(() => {
+    if (!data.length) return [];
+
+    const weights = data.map((d) => d.weight_kg);
+    const avgs = calcMovingAverage(weights, MOVING_AVG_DAYS);
+
+    return data.map((d, i) => ({
+      ...d,
+      weight_avg_7: avgs[i],
+    }));
+  }, [data]);
+
+  const plateauRanges = useMemo(() => {
+    return calcPlateauRanges(enhancedData, PLATEAU_DAYS, PLATEAU_RANGE_KG);
+  }, [enhancedData]);
+
   const ranges = useMemo(() => {
-    if (!data.length) {
+    if (!enhancedData.length) {
       return {
         weight: { min: 0, max: 80 },
         sleep: { min: 5, max: 9 },
       };
     }
 
-    const weights = data.map((d) => Number(d.weight_kg)).filter(Number.isFinite);
-    const sleeps = data.map((d) => Number(d.sleep_hours)).filter(Number.isFinite);
+    const weights = enhancedData
+      .flatMap((d) => [Number(d.weight_kg), Number(d.weight_avg_7), GOAL_WEIGHT])
+      .filter(Number.isFinite);
+
+    const sleeps = enhancedData
+      .map((d) => Number(d.sleep_hours))
+      .filter(Number.isFinite);
 
     let wMin = Math.min(...weights);
     let wMax = Math.max(...weights);
@@ -205,7 +285,26 @@ export default function App() {
       weight: { min: wMin, max: wMax },
       sleep: { min: sMin, max: sMax },
     };
-  }, [data]);
+  }, [enhancedData]);
+
+  const stats = useMemo(() => {
+    if (!enhancedData.length) return null;
+
+    const latest = enhancedData[enhancedData.length - 1];
+    const minWeight = Math.min(...enhancedData.map((d) => d.weight_kg));
+    const latestAvg = latest.weight_avg_7;
+    const diffToGoal = latest.weight_kg - GOAL_WEIGHT;
+
+    return {
+      latestWeight: latest.weight_kg,
+      latestAvg,
+      minWeight,
+      diffToGoal,
+      isPlateauNow:
+        plateauRanges.length > 0 &&
+        plateauRanges.some((r) => r.x2 === latest.date),
+    };
+  }, [enhancedData, plateauRanges]);
 
   const onUpload = async (file) => {
     try {
@@ -301,8 +400,64 @@ export default function App() {
     whiteSpace: "nowrap",
   };
 
+  const summaryWrapStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+    gap: 12,
+    marginBottom: 14,
+  };
+
+  const summaryCardStyle = {
+    background: "#fff",
+    border: "1px solid #e7e7e7",
+    borderRadius: 12,
+    padding: "12px 14px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+  };
+
+  const summaryLabelStyle = {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 6,
+  };
+
+  const summaryValueStyle = {
+    fontSize: 22,
+    fontWeight: 800,
+    color: "#222",
+  };
+
   return (
     <div style={pageStyle}>
+      {stats && (
+        <div style={summaryWrapStyle}>
+          <div style={summaryCardStyle}>
+            <div style={summaryLabelStyle}>最新体重</div>
+            <div style={summaryValueStyle}>{stats.latestWeight.toFixed(1)} kg</div>
+          </div>
+
+          <div style={summaryCardStyle}>
+            <div style={summaryLabelStyle}>7日平均</div>
+            <div style={summaryValueStyle}>
+              {Number.isFinite(stats.latestAvg) ? stats.latestAvg.toFixed(1) : "-"} kg
+            </div>
+          </div>
+
+          <div style={summaryCardStyle}>
+            <div style={summaryLabelStyle}>最小体重</div>
+            <div style={summaryValueStyle}>{stats.minWeight.toFixed(1)} kg</div>
+          </div>
+
+          <div style={summaryCardStyle}>
+            <div style={summaryLabelStyle}>目標まで</div>
+            <div style={summaryValueStyle}>
+              {stats.diffToGoal > 0 ? "+" : ""}
+              {stats.diffToGoal.toFixed(1)} kg
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ marginTop: 18 }}>
         <div style={chartOuterStyle}>
           <div style={leftAxisTitleStyle}>体重 (kg) ※折れ線</div>
@@ -310,10 +465,23 @@ export default function App() {
 
           <ResponsiveContainer>
             <ComposedChart
-              data={data}
-              margin={{ top: 10, right: 70, left: 70, bottom: 20 }}
+              data={enhancedData}
+              margin={{ top: 10, right: 78, left: 78, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
+
+              {plateauRanges.map((r, i) => (
+                <ReferenceArea
+                  key={`plateau-${i}`}
+                  x1={r.x1}
+                  x2={r.x2}
+                  yAxisId="left"
+                  ifOverflow="extendDomain"
+                  fill="#ffe8a3"
+                  fillOpacity={0.25}
+                  strokeOpacity={0}
+                />
+              ))}
 
               <XAxis
                 dataKey="date"
@@ -342,7 +510,20 @@ export default function App() {
               />
 
               <Tooltip content={<CustomTooltip />} />
-              <Legend verticalAlign="bottom" height={36} />
+              <Legend verticalAlign="bottom" height={44} />
+
+              <ReferenceLine
+                yAxisId="left"
+                y={GOAL_WEIGHT}
+                stroke="#9e9e9e"
+                strokeDasharray="6 4"
+                label={{
+                  value: `目標 ${GOAL_WEIGHT.toFixed(1)}kg`,
+                  position: "insideTopLeft",
+                  fill: "#666",
+                  fontSize: 12,
+                }}
+              />
 
               <Bar
                 yAxisId="right"
@@ -363,12 +544,25 @@ export default function App() {
                 activeDot={{ r: 6 }}
                 isAnimationActive={false}
               />
+
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="weight_avg_7"
+                name="7日平均(kg)"
+                stroke="#c2185b"
+                strokeWidth={3}
+                dot={false}
+                activeDot={{ r: 5 }}
+                isAnimationActive={false}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
-        <div style={{ marginTop: 10, color: "#666", fontSize: 13 }}>
-          ※ 睡眠は内部的に「時間(小数)」で描画し、表示だけ「HH:MM」に変換しています。
+        <div style={{ marginTop: 10, color: "#666", fontSize: 13, lineHeight: 1.6 }}>
+          <div>※ 睡眠は内部的に「時間(小数)」で描画し、表示だけ「HH:MM」に変換しています。</div>
+          <div>※ 薄い黄色の帯は「{PLATEAU_DAYS}日間で体重変動が {PLATEAU_RANGE_KG.toFixed(1)}kg以内」の停滞気味ゾーンです。</div>
         </div>
       </div>
 
@@ -410,6 +604,22 @@ export default function App() {
             <div style={{ color: "#333" }}>
               データソース：<b>{sourceLabel}</b>
             </div>
+
+            {stats?.isPlateauNow && (
+              <div
+                style={{
+                  color: "#8a6d00",
+                  background: "#fff7d6",
+                  border: "1px solid #f0de9c",
+                  borderRadius: 999,
+                  padding: "6px 10px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                停滞気味
+              </div>
+            )}
           </div>
 
           {error && (
