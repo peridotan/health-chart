@@ -211,6 +211,7 @@ export default function App() {
   const [data, setData] = useState([]);
   const [sourceLabel, setSourceLabel] = useState("デモ(data.csv)");
   const [error, setError] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -229,6 +230,16 @@ export default function App() {
         setError(String(e?.message || e));
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 640);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const enhancedData = useMemo(() => {
@@ -318,23 +329,23 @@ export default function App() {
   };
 
   const pageStyle = {
-    padding: 24,
+    padding: isMobile ? 12 : 24,
     maxWidth: 980,
     margin: "0 auto",
     paddingBottom: 32,
   };
 
-  const stickyWrapStyle = {
+  const panelWrapStyle = {
     position: "static",
     marginTop: 18,
   };
 
-  const stickyPanelStyle = {
+  const panelStyle = {
     border: "1px solid #ddd",
     borderRadius: 14,
     background: "#fff",
     boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-    padding: 14,
+    padding: isMobile ? 12 : 14,
   };
 
   const uploadRowStyle = {
@@ -360,7 +371,7 @@ export default function App() {
   const chartOuterStyle = {
     position: "relative",
     width: "100%",
-    height: 520,
+    height: isMobile ? 380 : 520,
     background: "#fff",
     borderRadius: 14,
     overflow: "hidden",
@@ -392,15 +403,19 @@ export default function App() {
 
   return (
     <div style={pageStyle}>
-      <div style={{ marginTop: 18 }}>
+      <div style={{ marginTop: isMobile ? 8 : 18 }}>
         <div style={chartOuterStyle}>
-          <div style={leftAxisTitleStyle}>体重 (kg) ※折れ線</div>
-          <div style={rightAxisTitleStyle}>睡眠 (h) ※棒</div>
+          {!isMobile && <div style={leftAxisTitleStyle}>体重 (kg) ※折れ線</div>}
+          {!isMobile && <div style={rightAxisTitleStyle}>睡眠 (h) ※棒</div>}
 
           <ResponsiveContainer>
             <ComposedChart
               data={enhancedData}
-              margin={{ top: 20, right: 78, left: 78, bottom: 20 }}
+              margin={
+                isMobile
+                  ? { top: 12, right: 12, left: 12, bottom: 12 }
+                  : { top: 20, right: 78, left: 78, bottom: 20 }
+              }
             >
               <CartesianGrid strokeDasharray="3 3" />
 
@@ -419,44 +434,57 @@ export default function App() {
 
               <XAxis
                 dataKey="date"
-                tickMargin={10}
+                tickMargin={isMobile ? 6 : 10}
                 interval="preserveStartEnd"
-                minTickGap={36}
+                minTickGap={isMobile ? 18 : 36}
                 tickFormatter={formatDateLabel}
+                style={{ fontSize: isMobile ? 10 : 12 }}
               />
 
               <YAxis
                 yAxisId="left"
-                width={46}
+                width={isMobile ? 34 : 46}
                 domain={[ranges.weight.min, ranges.weight.max]}
-                tickCount={6}
-                tickMargin={8}
+                tickCount={isMobile ? 4 : 6}
+                tickMargin={isMobile ? 4 : 8}
                 tickFormatter={(v) => Number(v).toFixed(1)}
+                style={{ fontSize: isMobile ? 10 : 12 }}
               />
 
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                width={46}
+                width={isMobile ? 34 : 46}
                 domain={[ranges.sleep.min, ranges.sleep.max]}
-                tickMargin={8}
+                tickCount={isMobile ? 4 : 5}
+                tickMargin={isMobile ? 4 : 8}
                 tickFormatter={(v) => hoursToHHMM(v)}
+                style={{ fontSize: isMobile ? 10 : 12 }}
               />
 
               <Tooltip content={<CustomTooltip />} />
-              <Legend verticalAlign="bottom" height={44} />
+
+              <Legend
+                verticalAlign="bottom"
+                height={isMobile ? 60 : 44}
+                wrapperStyle={{ fontSize: isMobile ? 11 : 12 }}
+              />
 
               <ReferenceLine
                 yAxisId="left"
                 y={GOAL_WEIGHT}
                 stroke="#9e9e9e"
                 strokeDasharray="6 4"
-                label={{
-                  value: `目標 ${GOAL_WEIGHT.toFixed(1)}kg`,
-                  position: "insideTopLeft",
-                  fill: "#666",
-                  fontSize: 12,
-                }}
+                label={
+                  isMobile
+                    ? false
+                    : {
+                        value: `目標 ${GOAL_WEIGHT.toFixed(1)}kg`,
+                        position: "insideTopLeft",
+                        fill: "#666",
+                        fontSize: 12,
+                      }
+                }
               />
 
               <Bar
@@ -473,7 +501,7 @@ export default function App() {
                 dataKey="weight_avg_7"
                 name="7日平均(kg)"
                 stroke="#2e7d32"
-                strokeWidth={3}
+                strokeWidth={isMobile ? 2.5 : 3}
                 dot={false}
                 activeDot={false}
                 isAnimationActive={false}
@@ -487,25 +515,43 @@ export default function App() {
                 name="体重(kg)"
                 stroke="#ff2d55"
                 strokeWidth={2}
-                dot={{ r: 4, stroke: "#ff2d55", fill: "#fff" }}
-                activeDot={{ r: 6 }}
+                dot={
+                  isMobile
+                    ? { r: 3, stroke: "#ff2d55", fill: "#fff" }
+                    : { r: 4, stroke: "#ff2d55", fill: "#fff" }
+                }
+                activeDot={isMobile ? { r: 4 } : { r: 6 }}
                 isAnimationActive={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
-        <div style={{ marginTop: 10, color: "#666", fontSize: 13, lineHeight: 1.6 }}>
-          <div>※ 睡眠は内部的に「時間(小数)」で描画し、表示だけ「HH:MM」に変換しています。</div>
+        <div
+          style={{
+            marginTop: 10,
+            color: "#666",
+            fontSize: isMobile ? 11 : 13,
+            lineHeight: 1.6,
+          }}
+        >
           <div>
-            ※ 薄い黄色の帯は「{PLATEAU_DAYS}日間で体重変動が{" "}
-            {PLATEAU_RANGE_KG.toFixed(1)}kg以内」の停滞気味ゾーンです。
+            {isMobile
+              ? "※ 睡眠は HH:MM 表示です。"
+              : "※ 睡眠は内部的に「時間(小数)」で描画し、表示だけ「HH:MM」に変換しています。"}
+          </div>
+          <div>
+            {isMobile
+              ? "※ 黄色帯は停滞気味ゾーンです。"
+              : `※ 薄い黄色の帯は「${PLATEAU_DAYS}日間で体重変動が ${PLATEAU_RANGE_KG.toFixed(
+                  1
+                )}kg以内」の停滞気味ゾーンです。`}
           </div>
         </div>
       </div>
 
-      <div style={stickyWrapStyle}>
-        <div style={stickyPanelStyle}>
+      <div style={panelWrapStyle}>
+        <div style={panelStyle}>
           <div
             style={{
               display: "flex",
@@ -515,7 +561,7 @@ export default function App() {
             }}
           >
             <div style={{ fontWeight: 800, fontSize: 16 }}>CSVアップロード</div>
-            <div style={{ color: "#666", fontSize: 13 }}>
+            <div style={{ color: "#666", fontSize: isMobile ? 12 : 13 }}>
               フォーマット：{" "}
               <span
                 style={{
@@ -570,6 +616,7 @@ export default function App() {
                 borderRadius: 10,
                 color: "#b00020",
                 whiteSpace: "pre-wrap",
+                fontSize: isMobile ? 12 : 14,
               }}
             >
               {error}
