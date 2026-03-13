@@ -543,7 +543,7 @@ export default function App() {
                 dot={{ r: 4, stroke: "#ff2d55", fill: "#fff" }}
                 activeDot={{ r: 6 }}
                 isAnimationActive={false}
-                legendType="plainline"
+
               />
 
 
