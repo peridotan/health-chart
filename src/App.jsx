@@ -15,10 +15,10 @@ import {
 } from "recharts";
 
 /** ===== settings ===== */
-const GOAL_WEIGHT = 60.0; // 目標体重
-const MOVING_AVG_DAYS = 7; // 移動平均日数
-const PLATEAU_DAYS = 14; // 停滞判定期間
-const PLATEAU_RANGE_KG = 0.4; // この範囲内なら停滞気味とみなす
+const GOAL_WEIGHT = 60.0;
+const MOVING_AVG_DAYS = 7;
+const PLATEAU_DAYS = 14;
+const PLATEAU_RANGE_KG = 0.4;
 
 /** ===== utilities ===== */
 function parseCSV(text) {
@@ -321,22 +321,19 @@ export default function App() {
     padding: 24,
     maxWidth: 980,
     margin: "0 auto",
-    paddingBottom: 140,
+    paddingBottom: 32,
   };
 
   const stickyWrapStyle = {
-    position: "sticky",
-    bottom: 16,
-    zIndex: 20,
+    position: "static",
     marginTop: 18,
   };
 
   const stickyPanelStyle = {
     border: "1px solid #ddd",
     borderRadius: 14,
-    background: "rgba(255,255,255,0.92)",
-    backdropFilter: "blur(10px)",
-    boxShadow: "0 10px 26px rgba(0,0,0,0.12)",
+    background: "#fff",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
     padding: 14,
   };
 
