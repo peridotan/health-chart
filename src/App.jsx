@@ -290,7 +290,7 @@ export default function App() {
           <ResponsiveContainer>
             <ComposedChart
               data={data}
-              margin={{ top: 10, right: 70, left: 70, bottom: 20 }}
+              margin={{ top: 10, right: 80, left: 80, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
 
@@ -313,7 +313,7 @@ export default function App() {
                   value: "体重 (kg) ※折れ線",
                   angle: -90,
                   position: "outsideLeft",
-                  offset: 18,
+                  offset: 24,
                   style: { textAnchor: "middle" },
                 }}
               />
@@ -329,7 +329,7 @@ export default function App() {
                   value: "睡眠 (h) ※棒",
                   angle: 90,
                   position: "outsideRight",
-                  offset: 18,
+                  offset: 24,
                   style: { textAnchor: "middle" },
                 }}
               />
