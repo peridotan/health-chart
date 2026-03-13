@@ -18,6 +18,11 @@ const MOVING_AVG_DAYS = 7;
 const PLATEAU_DAYS = 14;
 const PLATEAU_RANGE_KG = 0.4;
 
+/** security / validation */
+const MAX_FILE_SIZE = 1024 * 1024; // 1MB
+const MAX_ROWS = 1000;
+const MAX_DATE_LENGTH = 20;
+
 /** ===== utilities ===== */
 function parseCSV(text) {
   const lines = text
@@ -33,8 +38,10 @@ function parseCSV(text) {
     const out = [];
     let cur = "";
     let inQ = false;
+
     for (let i = 0; i < row.length; i++) {
       const ch = row[i];
+
       if (ch === '"') {
         if (inQ && row[i + 1] === '"') {
           cur += '"';
@@ -49,11 +56,14 @@ function parseCSV(text) {
         cur += ch;
       }
     }
+
     out.push(cur.trim());
     return out;
   };
 
-  const header = splitRow(lines[0]).map((h) => h.replace(/^"|"$/g, ""));
+  const sanitizeCell = (value) => String(value ?? "").replace(/^"|"$/g, "").trim();
+
+  const header = splitRow(lines[0]).map(sanitizeCell);
   const idx = {
     date: header.findIndex((h) => h === "date"),
     weight_kg: header.findIndex((h) => h === "weight_kg"),
@@ -62,21 +72,64 @@ function parseCSV(text) {
 
   if (idx.date < 0 || idx.weight_kg < 0 || idx.sleep_time < 0) return [];
 
+  const isValidDate = (dateStr) => {
+    const s = String(dateStr || "").trim().slice(0, MAX_DATE_LENGTH);
+
+    const m1 = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+    const m2 = s.match(/^(\d{2})[-/](\d{1,2})[-/](\d{1,2})$/);
+
+    const match = m1 || m2;
+    if (!match) return false;
+
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+
+    if (!Number.isInteger(month) || !Number.isInteger(day)) return false;
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+
+    return true;
+  };
+
+  const normalizeDate = (dateStr) => String(dateStr || "").trim().slice(0, MAX_DATE_LENGTH);
+
   const toMinutes = (sleepStr) => {
-    const parts = String(sleepStr).split(":").map((n) => parseInt(n, 10));
-    if (parts.length < 2 || parts.some((n) => Number.isNaN(n))) return null;
-    const [h, m, s = 0] = parts;
-    return h * 60 + m + Math.round(s / 60);
+    const m = String(sleepStr || "")
+      .trim()
+      .match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+
+    if (!m) return null;
+
+    const h = Number(m[1]);
+    const min = Number(m[2]);
+    const sec = m[3] ? Number(m[3]) : 0;
+
+    if (
+      !Number.isInteger(h) ||
+      !Number.isInteger(min) ||
+      !Number.isInteger(sec)
+    ) {
+      return null;
+    }
+
+    if (h < 0 || h > 23 || min < 0 || min > 59 || sec < 0 || sec > 59) {
+      return null;
+    }
+
+    return h * 60 + min + Math.round(sec / 60);
   };
 
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
-    const cols = splitRow(lines[i]).map((c) => c.replace(/^"|"$/g, ""));
-    const date = cols[idx.date];
+    const cols = splitRow(lines[i]).map(sanitizeCell);
+
+    const date = normalizeDate(cols[idx.date]);
     const w = Number(cols[idx.weight_kg]);
     const sleepMin = toMinutes(cols[idx.sleep_time]);
 
-    if (!date || !Number.isFinite(w) || sleepMin == null) continue;
+    if (!date || !isValidDate(date)) continue;
+    if (!Number.isFinite(w) || w <= 0 || w > 500) continue;
+    if (sleepMin == null) continue;
 
     rows.push({
       date,
@@ -84,6 +137,10 @@ function parseCSV(text) {
       sleep_hours: sleepMin / 60,
       sleep_minutes: sleepMin,
     });
+
+    if (rows.length > MAX_ROWS) {
+      throw new Error(`CSVの行数が多すぎます。${MAX_ROWS}行以下にしてください。`);
+    }
   }
 
   return rows;
@@ -219,9 +276,17 @@ export default function App() {
           cache: "no-store",
         });
         if (!res.ok) throw new Error(`data.csv が読み込めません: ${res.status}`);
+
         const text = await res.text();
+        if (text.length > MAX_FILE_SIZE * 2) {
+          throw new Error("data.csv が大きすぎます。");
+        }
+
         const rows = parseCSV(text);
-        if (!rows.length) throw new Error("data.csv の形式が不正 or データが空です");
+        if (!rows.length) {
+          throw new Error("data.csv の形式が不正 or データが空です");
+        }
+
         setData(rows);
         setSourceLabel("デモ(data.csv)");
       } catch (e) {
@@ -312,6 +377,10 @@ export default function App() {
     try {
       setError("");
       if (!file) return;
+
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`CSVファイルが大きすぎます。${Math.floor(MAX_FILE_SIZE / 1024)}KB以下にしてください。`);
+      }
 
       const text = await file.text();
       const rows = parseCSV(text);
@@ -527,6 +596,11 @@ export default function App() {
               : `※ 薄い黄色の帯は「${PLATEAU_DAYS}日間で体重変動が ${PLATEAU_RANGE_KG.toFixed(
                   1
                 )}kg以内」の停滞気味ゾーンです。`}
+          </div>
+          <div>
+            {isMobile
+              ? "※ CSVは1MB・1000行までです。"
+              : `※ CSVは ${Math.floor(MAX_FILE_SIZE / 1024)}KB 以下、${MAX_ROWS}行以下を想定しています。`}
           </div>
         </div>
       </div>
