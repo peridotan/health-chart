@@ -55,7 +55,6 @@ function parseCSV(text) {
     sleep_time: header.findIndex((h) => h === "sleep_time"),
   };
 
-  // Accept "date,weight_kg,sleep_time" only
   if (idx.date < 0 || idx.weight_kg < 0 || idx.sleep_time < 0) return [];
 
   const toMinutes = (sleepStr) => {
@@ -78,13 +77,12 @@ function parseCSV(text) {
     rows.push({
       date,
       weight_kg: w,
-      sleep_hours: sleepMin / 60, // numeric for chart
-      sleep_minutes: sleepMin, // for formatting
+      sleep_hours: sleepMin / 60,
+      sleep_minutes: sleepMin,
     });
   }
 
-  // sort by date string (works best if you use YYYY-MM-DD; still OK for MM/DD in your current data)
-  // rows.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  // 並び順はCSVの順を尊重
   return rows;
 }
 
@@ -97,6 +95,31 @@ function hoursToHHMM(hours) {
 
 function niceNumber(n, step) {
   return Math.round(n / step) * step;
+}
+
+function formatDateLabel(value) {
+  if (!value) return "";
+
+  // YYYY-MM-DD / YY/MM/DD / YYYY/MM/DD あたりを想定して末尾寄りを見やすく
+  const s = String(value).trim();
+
+  // 例: 2026-03-13 -> 03/13
+  const m1 = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (m1) {
+    const mm = String(m1[2]).padStart(2, "0");
+    const dd = String(m1[3]).padStart(2, "0");
+    return `${mm}/${dd}`;
+  }
+
+  // 例: 26/03/13 -> 03/13
+  const m2 = s.match(/^(\d{2})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (m2) {
+    const mm = String(m2[2]).padStart(2, "0");
+    const dd = String(m2[3]).padStart(2, "0");
+    return `${mm}/${dd}`;
+  }
+
+  return s;
 }
 
 /** ===== UI components ===== */
@@ -120,7 +143,7 @@ function CustomTooltip({ active, payload, label }) {
       <div style={{ fontWeight: 700, marginBottom: 6 }}>{label}</div>
       {Number.isFinite(weight) && (
         <div style={{ color: "#ff2d55", marginBottom: 4 }}>
-          体重：{weight.toFixed(1)} kg
+          体重：{Number(weight).toFixed(1)} kg
         </div>
       )}
       {Number.isFinite(sleep) && (
@@ -164,29 +187,29 @@ export default function App() {
       };
     }
 
-    const weights = data.map((d) => d.weight_kg);
-    const sleeps = data.map((d) => d.sleep_hours);
+    const weights = data.map((d) => Number(d.weight_kg)).filter(Number.isFinite);
+    const sleeps = data.map((d) => Number(d.sleep_hours)).filter(Number.isFinite);
 
     let wMin = Math.min(...weights);
     let wMax = Math.max(...weights);
 
-    // pad a bit and snap to 0.1kg
+    // 少し余白を持たせて 0.1kg 刻みに寄せる
     const pad = Math.max(0.3, (wMax - wMin) * 0.25);
     wMin = niceNumber(wMin - pad, 0.1);
     wMax = niceNumber(wMax + pad, 0.1);
 
-    // keep minimum visible range (avoid flat charts)
+    // 変化幅が小さいときも見やすく
     if (wMax - wMin < 1.0) {
       const mid = (wMax + wMin) / 2;
       wMin = niceNumber(mid - 0.5, 0.1);
       wMax = niceNumber(mid + 0.5, 0.1);
     }
 
-    // sleep range: keep reasonable band, but include data
+    // sleep range
     let sMin = Math.min(...sleeps);
     let sMax = Math.max(...sleeps);
-    sMin = Math.floor(Math.min(5, sMin)); // don't go too low visually
-    sMax = Math.ceil(Math.max(9, sMax)); // don't go too high visually
+    sMin = Math.floor(Math.min(5, sMin));
+    sMax = Math.ceil(Math.max(9, sMax));
 
     return {
       weight: { min: wMin, max: wMax },
@@ -201,7 +224,9 @@ export default function App() {
 
       const text = await file.text();
       const rows = parseCSV(text);
-      if (!rows.length) throw new Error("CSVの形式が不正です（date,weight_kg,sleep_time）");
+      if (!rows.length) {
+        throw new Error("CSVの形式が不正です（date,weight_kg,sleep_time）");
+      }
 
       setData(rows);
       setSourceLabel(`アップロード(${file.name})`);
@@ -210,12 +235,11 @@ export default function App() {
     }
   };
 
-  // UI styles (inline)
+  // UI styles
   const pageStyle = {
     padding: 24,
     maxWidth: 980,
     margin: "0 auto",
-    // sticky panel 分の下余白を確保（スマホで下に被らないように）
     paddingBottom: 140,
   };
 
@@ -257,44 +281,67 @@ export default function App() {
 
   return (
     <div style={pageStyle}>
-
-      {/* ✅ 先にグラフ */}
       <div style={{ marginTop: 18 }}>
-        <div style={{ width: "100%", height: 520, background: "#fff", borderRadius: 14 }}>
+        <div
+          style={{
+            width: "100%",
+            height: 520,
+            background: "#fff",
+            borderRadius: 14,
+          }}
+        >
           <ResponsiveContainer>
-            <ComposedChart data={data} margin={{ top: 10, right: 36, left: 20, bottom: 20 }}>
+            <ComposedChart
+              data={data}
+              margin={{ top: 10, right: 40, left: 46, bottom: 20 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
 
               <XAxis
                 dataKey="date"
                 tickMargin={10}
                 interval="preserveStartEnd"
-                minTickGap={40}
+                minTickGap={36}
+                tickFormatter={formatDateLabel}
               />
 
-              {/* Left axis: weight (narrow range) */}
+              {/* Left axis: weight */}
               <YAxis
                 yAxisId="left"
+                width={64}
                 domain={[ranges.weight.min, ranges.weight.max]}
                 tickCount={6}
                 tickMargin={8}
-                label={{ value: "体重 (kg)※折れ線", angle: -90, position: "insideLeft" }}
+                tickFormatter={(v) => Number(v).toFixed(1)}
+                label={{
+                  value: "体重 (kg) ※折れ線",
+                  angle: -90,
+                  position: "outsideLeft",
+                  offset: 4,
+                  style: { textAnchor: "middle" },
+                }}
               />
 
               {/* Right axis: sleep */}
               <YAxis
                 yAxisId="right"
                 orientation="right"
+                width={56}
                 domain={[ranges.sleep.min, ranges.sleep.max]}
                 tickMargin={8}
                 tickFormatter={(v) => hoursToHHMM(v)}
-                label={{ value: "睡眠 (h)※棒", angle: 90, position: "insideRight" }}
+                label={{
+                  value: "睡眠 (h) ※棒",
+                  angle: 90,
+                  position: "outsideRight",
+                  offset: 4,
+                  style: { textAnchor: "middle" },
+                }}
               />
 
               <Tooltip content={<CustomTooltip />} />
               <Legend verticalAlign="bottom" height={36} />
 
-              {/* Bars: sleep */}
               <Bar
                 yAxisId="right"
                 dataKey="sleep_hours"
@@ -303,7 +350,6 @@ export default function App() {
                 radius={[6, 6, 0, 0]}
               />
 
-              {/* Line: weight */}
               <Line
                 yAxisId="left"
                 type="monotone"
@@ -313,6 +359,7 @@ export default function App() {
                 strokeWidth={2}
                 dot={{ r: 4, stroke: "#ff2d55", fill: "#fff" }}
                 activeDot={{ r: 6 }}
+                isAnimationActive={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -323,14 +370,24 @@ export default function App() {
         </div>
       </div>
 
-      {/* ✅ 下に sticky なCSV Uploadパネル */}
       <div style={stickyWrapStyle}>
         <div style={stickyPanelStyle}>
-          <div style={{ display: "flex", gap: 14, alignItems: "baseline", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 14,
+              alignItems: "baseline",
+              flexWrap: "wrap",
+            }}
+          >
             <div style={{ fontWeight: 800, fontSize: 16 }}>CSVアップロード</div>
             <div style={{ color: "#666", fontSize: 13 }}>
               フォーマット：{" "}
-              <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
+              <span
+                style={{
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                }}
+              >
                 date,weight_kg,sleep_time
               </span>
             </div>
