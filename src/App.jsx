@@ -100,10 +100,9 @@ function niceNumber(n, step) {
 function formatDateLabel(value) {
   if (!value) return "";
 
-  // YYYY-MM-DD / YY/MM/DD / YYYY/MM/DD あたりを想定して末尾寄りを見やすく
   const s = String(value).trim();
 
-  // 例: 2026-03-13 -> 03/13
+  // 2026-03-13 -> 03/13
   const m1 = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (m1) {
     const mm = String(m1[2]).padStart(2, "0");
@@ -111,7 +110,7 @@ function formatDateLabel(value) {
     return `${mm}/${dd}`;
   }
 
-  // 例: 26/03/13 -> 03/13
+  // 26/03/13 -> 03/13
   const m2 = s.match(/^(\d{2})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (m2) {
     const mm = String(m2[2]).padStart(2, "0");
@@ -205,7 +204,6 @@ export default function App() {
       wMax = niceNumber(mid + 0.5, 0.1);
     }
 
-    // sleep range
     let sMin = Math.min(...sleeps);
     let sMax = Math.max(...sleeps);
     sMin = Math.floor(Math.min(5, sMin));
@@ -235,7 +233,6 @@ export default function App() {
     }
   };
 
-  // UI styles
   const pageStyle = {
     padding: 24,
     maxWidth: 980,
@@ -293,7 +290,7 @@ export default function App() {
           <ResponsiveContainer>
             <ComposedChart
               data={data}
-              margin={{ top: 10, right: 40, left: 46, bottom: 20 }}
+              margin={{ top: 10, right: 70, left: 70, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
 
@@ -305,7 +302,6 @@ export default function App() {
                 tickFormatter={formatDateLabel}
               />
 
-              {/* Left axis: weight */}
               <YAxis
                 yAxisId="left"
                 width={64}
@@ -317,12 +313,11 @@ export default function App() {
                   value: "体重 (kg) ※折れ線",
                   angle: -90,
                   position: "outsideLeft",
-                  offset: 4,
+                  offset: 18,
                   style: { textAnchor: "middle" },
                 }}
               />
 
-              {/* Right axis: sleep */}
               <YAxis
                 yAxisId="right"
                 orientation="right"
@@ -334,7 +329,7 @@ export default function App() {
                   value: "睡眠 (h) ※棒",
                   angle: 90,
                   position: "outsideRight",
-                  offset: 4,
+                  offset: 18,
                   style: { textAnchor: "middle" },
                 }}
               />
