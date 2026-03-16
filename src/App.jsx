@@ -77,8 +77,8 @@ function parseCSV(text) {
 
     const m1 = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
     const m2 = s.match(/^(\d{2})[-/](\d{1,2})[-/](\d{1,2})$/);
-
     const match = m1 || m2;
+
     if (!match) return false;
 
     const month = Number(match[2]);
@@ -91,7 +91,8 @@ function parseCSV(text) {
     return true;
   };
 
-  const normalizeDate = (dateStr) => String(dateStr || "").trim().slice(0, MAX_DATE_LENGTH);
+  const normalizeDate = (dateStr) =>
+    String(dateStr || "").trim().slice(0, MAX_DATE_LENGTH);
 
   const toMinutes = (sleepStr) => {
     const m = String(sleepStr || "")
@@ -124,18 +125,17 @@ function parseCSV(text) {
     const cols = splitRow(lines[i]).map(sanitizeCell);
 
     const date = normalizeDate(cols[idx.date]);
-    const w = Number(cols[idx.weight_kg]);
+    const weight = Number(cols[idx.weight_kg]);
     const sleepMin = toMinutes(cols[idx.sleep_time]);
 
     if (!date || !isValidDate(date)) continue;
-    if (!Number.isFinite(w) || w <= 0 || w > 500) continue;
+    if (!Number.isFinite(weight) || weight <= 0 || weight > 500) continue;
     if (sleepMin == null) continue;
 
     rows.push({
       date,
-      weight_kg: w,
+      weight_kg: weight,
       sleep_hours: sleepMin / 60,
-      sleep_minutes: sleepMin,
     });
 
     if (rows.length > MAX_ROWS) {
@@ -264,7 +264,6 @@ function CustomTooltip({ active, payload, label }) {
 /** ===== main ===== */
 export default function App() {
   const [data, setData] = useState([]);
-  const [sourceLabel, setSourceLabel] = useState("デモ(data.csv)");
   const [error, setError] = useState("");
   const [isMobile, setIsMobile] = useState(false);
 
@@ -272,6 +271,7 @@ export default function App() {
     (async () => {
       try {
         setError("");
+
         const res = await fetch(`${import.meta.env.BASE_URL}data.csv`, {
           cache: "no-store",
         });
@@ -288,7 +288,6 @@ export default function App() {
         }
 
         setData(rows);
-        setSourceLabel("デモ(data.csv)");
       } catch (e) {
         setError(String(e?.message || e));
       }
@@ -317,9 +316,10 @@ export default function App() {
     }));
   }, [data]);
 
-  const plateauRanges = useMemo(() => {
-    return calcPlateauRanges(enhancedData, PLATEAU_DAYS, PLATEAU_RANGE_KG);
-  }, [enhancedData]);
+  const plateauRanges = useMemo(
+    () => calcPlateauRanges(enhancedData, PLATEAU_DAYS, PLATEAU_RANGE_KG),
+    [enhancedData]
+  );
 
   const ranges = useMemo(() => {
     if (!enhancedData.length) {
@@ -361,78 +361,11 @@ export default function App() {
     };
   }, [enhancedData]);
 
-  const stats = useMemo(() => {
-    if (!enhancedData.length) return null;
-
-    const latest = enhancedData[enhancedData.length - 1];
-
-    return {
-      isPlateauNow:
-        plateauRanges.length > 0 &&
-        plateauRanges.some((r) => r.x2 === latest.date),
-    };
-  }, [enhancedData, plateauRanges]);
-
-  const onUpload = async (file) => {
-    try {
-      setError("");
-      if (!file) return;
-
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error(`CSVファイルが大きすぎます。${Math.floor(MAX_FILE_SIZE / 1024)}KB以下にしてください。`);
-      }
-
-      const text = await file.text();
-      const rows = parseCSV(text);
-      if (!rows.length) {
-        throw new Error("CSVの形式が不正です（date,weight_kg,sleep_time）");
-      }
-
-      setData(rows);
-      setSourceLabel(`アップロード(${file.name})`);
-    } catch (e) {
-      setError(String(e?.message || e));
-    }
-  };
-
   const pageStyle = {
     padding: isMobile ? 12 : 24,
     maxWidth: 980,
     margin: "0 auto",
     paddingBottom: 32,
-  };
-
-  const panelWrapStyle = {
-    position: "static",
-    marginTop: 18,
-  };
-
-  const panelStyle = {
-    border: "1px solid #ddd",
-    borderRadius: 14,
-    background: "#fff",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-    padding: isMobile ? 12 : 14,
-  };
-
-  const uploadRowStyle = {
-    marginTop: 10,
-    display: "flex",
-    gap: 12,
-    alignItems: "center",
-    flexWrap: "wrap",
-  };
-
-  const uploadButtonStyle = {
-    display: "inline-flex",
-    gap: 10,
-    alignItems: "center",
-    padding: "10px 12px",
-    border: "1px solid #ddd",
-    borderRadius: 10,
-    background: "#fff",
-    cursor: "pointer",
-    userSelect: "none",
   };
 
   const chartOuterStyle = {
@@ -577,75 +510,22 @@ export default function App() {
           </ResponsiveContainer>
         </div>
 
-        <div
-          style={{
-            marginTop: 10,
-            color: "#666",
-            fontSize: isMobile ? 11 : 13,
-            lineHeight: 1.6,
-          }}
-        >
-          <div>
-            {isMobile
-              ? "※ 睡眠は HH:MM 表示です。"
-              : "※ 睡眠は内部的に「時間(小数)」で描画し、表示だけ「HH:MM」に変換しています。"}
-          </div>
-          <div>
-            {isMobile
-              ? "※ 黄色帯は停滞気味ゾーンです。"
-              : `※ 薄い黄色の帯は「${PLATEAU_DAYS}日間で体重変動が ${PLATEAU_RANGE_KG.toFixed(
-                  1
-                )}kg以内」の停滞気味ゾーンです。`}
-          </div>
-
-        </div>
-      </div>
-
-      <div style={panelWrapStyle}>
-        <div style={panelStyle}>
+        {error && (
           <div
             style={{
-              display: "flex",
-              gap: 14,
-              alignItems: "baseline",
-              flexWrap: "wrap",
+              marginTop: 12,
+              padding: 12,
+              border: "1px solid #ffb4b4",
+              background: "#fff2f2",
+              borderRadius: 10,
+              color: "#b00020",
+              whiteSpace: "pre-wrap",
+              fontSize: isMobile ? 12 : 14,
             }}
           >
-
-            {stats?.isPlateauNow && (
-              <div
-                style={{
-                  color: "#8a6d00",
-                  background: "#fff7d6",
-                  border: "1px solid #f0de9c",
-                  borderRadius: 999,
-                  padding: "6px 10px",
-                  fontSize: 12,
-                  fontWeight: 700,
-                }}
-              >
-                停滞気味
-              </div>
-            )}
+            {error}
           </div>
-
-          {error && (
-            <div
-              style={{
-                marginTop: 10,
-                padding: 12,
-                border: "1px solid #ffb4b4",
-                background: "#fff2f2",
-                borderRadius: 10,
-                color: "#b00020",
-                whiteSpace: "pre-wrap",
-                fontSize: isMobile ? 12 : 14,
-              }}
-            >
-              {error}
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
