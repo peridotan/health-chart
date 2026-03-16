@@ -597,11 +597,12 @@ export default function App() {
                   1
                 )}kg以内」の停滞気味ゾーンです。`}
           </div>
-//          <div>
-//            {isMobile
-//              ? "※ CSVは1MB・1000行までです。"
-//              : `※ CSVは ${Math.floor(MAX_FILE_SIZE / 1024)}KB 以下、${MAX_ROWS}行以下を想定しています。`}
-//          </div>
+/*          <div>
+            {isMobile
+              ? "※ CSVは1MB・1000行までです。"
+              : `※ CSVは ${Math.floor(MAX_FILE_SIZE / 1024)}KB 以下、${MAX_ROWS}行以下を想定しています。`}
+          </div>
+*/
         </div>
       </div>
 
