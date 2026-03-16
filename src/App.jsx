@@ -615,18 +615,18 @@ export default function App() {
               flexWrap: "wrap",
             }}
           >
-            <div style={{ fontWeight: 800, fontSize: 16 }}>CSVアップロード</div>
-            <div style={{ color: "#666", fontSize: isMobile ? 12 : 13 }}>
-              フォーマット：{" "}
-              <span
-                style={{
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                }}
-              >
-                date,weight_kg,sleep_time
-              </span>
-            </div>
-          </div>
+//            <div style={{ fontWeight: 800, fontSize: 16 }}>CSVアップロード</div>
+//            <div style={{ color: "#666", fontSize: isMobile ? 12 : 13 }}>
+//              フォーマット：{" "}
+//              <span
+//                style={{
+//                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+//                }}
+//              >
+//                date,weight_kg,sleep_time
+//              </span>
+//            </div>
+//          </div>
 
           <div style={uploadRowStyle}>
             <label style={uploadButtonStyle}>
