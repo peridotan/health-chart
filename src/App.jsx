@@ -615,7 +615,7 @@ export default function App() {
               flexWrap: "wrap",
             }}
           >
-/** ===== settings ===== 
+/* ===== settings ===== 
             <div style={{ fontWeight: 800, fontSize: 16 }}>CSVアップロード</div>
             <div style={{ color: "#666", fontSize: isMobile ? 12 : 13 }}>
               フォーマット：{" "}
