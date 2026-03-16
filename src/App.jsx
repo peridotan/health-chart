@@ -599,8 +599,8 @@ export default function App() {
           </div>
           <div>
             {isMobile
-              ? "※ CSVは1MB・1000行までです。"
-              : `※ CSVは ${Math.floor(MAX_FILE_SIZE / 1024)}KB 以下、${MAX_ROWS}行以下を想定しています。`}
+//              ? "※ CSVは1MB・1000行までです。"
+//              : `※ CSVは ${Math.floor(MAX_FILE_SIZE / 1024)}KB 以下、${MAX_ROWS}行以下を想定しています。`}
           </div>
         </div>
       </div>
@@ -615,18 +615,19 @@ export default function App() {
               flexWrap: "wrap",
             }}
           >
-//            <div style={{ fontWeight: 800, fontSize: 16 }}>CSVアップロード</div>
-//            <div style={{ color: "#666", fontSize: isMobile ? 12 : 13 }}>
-//              フォーマット：{" "}
-//              <span
-//                style={{
-//                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-//                }}
-//              >
-//                date,weight_kg,sleep_time
-//              </span>
-//            </div>
-//          </div>
+/** ===== settings ===== 
+            <div style={{ fontWeight: 800, fontSize: 16 }}>CSVアップロード</div>
+            <div style={{ color: "#666", fontSize: isMobile ? 12 : 13 }}>
+              フォーマット：{" "}
+              <span
+                style={{
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                }}
+              >
+                date,weight_kg,sleep_time
+              </span>
+            </div>
+          </div>
 
           <div style={uploadRowStyle}>
             <label style={uploadButtonStyle}>
@@ -643,7 +644,7 @@ export default function App() {
             <div style={{ color: "#333" }}>
               データソース：<b>{sourceLabel}</b>
             </div>
-
+*/
             {stats?.isPlateauNow && (
               <div
                 style={{
