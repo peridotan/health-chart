@@ -597,12 +597,7 @@ export default function App() {
                   1
                 )}kg以内」の停滞気味ゾーンです。`}
           </div>
-/*          <div>
-            {isMobile
-              ? "※ CSVは1MB・1000行までです。"
-              : `※ CSVは ${Math.floor(MAX_FILE_SIZE / 1024)}KB 以下、${MAX_ROWS}行以下を想定しています。`}
-          </div>
-*/
+
         </div>
       </div>
 
@@ -616,36 +611,7 @@ export default function App() {
               flexWrap: "wrap",
             }}
           >
-/* ===== settings ===== 
-            <div style={{ fontWeight: 800, fontSize: 16 }}>CSVアップロード</div>
-            <div style={{ color: "#666", fontSize: isMobile ? 12 : 13 }}>
-              フォーマット：{" "}
-              <span
-                style={{
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                }}
-              >
-                date,weight_kg,sleep_time
-              </span>
-            </div>
-          </div>
 
-          <div style={uploadRowStyle}>
-            <label style={uploadButtonStyle}>
-              <input
-                type="file"
-                accept=".csv,text/csv"
-                style={{ display: "none" }}
-                onChange={(e) => onUpload(e.target.files?.[0])}
-              />
-              <span style={{ fontWeight: 800 }}>CSVを選ぶ</span>
-              <span style={{ color: "#666" }}>（選ぶだけで反映）</span>
-            </label>
-
-            <div style={{ color: "#333" }}>
-              データソース：<b>{sourceLabel}</b>
-            </div>
-*/
             {stats?.isPlateauNow && (
               <div
                 style={{
